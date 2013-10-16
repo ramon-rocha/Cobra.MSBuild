@@ -30,7 +30,7 @@ projects in the test_projects folder.
 Alternatively, create a new Cobra project using MonoDevelop and add this
 line at the end of the ```.cobraproj``` file:
 
-    <Import Project="..\..\..\targets\Cobra.targets" />
+    <Import Project="path\to\targets\Cobra.targets" />
 
 TODO
 ---------
