@@ -14,7 +14,9 @@ Alternatively, build ```Cobra.MSBuild.cobraproj``` using the
 MonoDevelop.CobraBinding addin.
 
 On Mono, you must first apply the CommandLineBuilder patch to
-```path/to/mono/mcs/class/Microsoft.Build.Utilities/Microsoft.Build.Utilities/CommandLineBuilder.cs```
+
+    path/to/mono/mcs/class/Microsoft.Build.Utilities/Microsoft.Build.Utilities/CommandLineBuilder.cs
+
 in order to compile the build task.
 
 A precompiled assembly is also provided for convenience.  Remember to backup
