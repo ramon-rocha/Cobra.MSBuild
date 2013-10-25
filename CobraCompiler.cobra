@@ -4,52 +4,31 @@ use Microsoft.Build.Utilities from "Microsoft.Build.Utilities.v4.0" # so we can 
 
 namespace Cobra.MSBuild
 
-extend CommandLineBuilder
+extend StringBuilder
+	def appendNilableArg(switch as String, arg as String?)
+		"""
+		Appends the provided swith and argument value if the value is not nil.
+		"""
+		if arg == nil, return
+		if .length <> 0, .append(" ")
+		.append(switch)
+		if arg.contains(" "), arg = '"[arg]"'
+		.append(arg)
 	
-	def appendSwitch(switch as String, arg as String)
+	def appendBooleanArg(switch as String, arg as bool)
 		"""
-		Non-nil overload
+		Appends the provided switch and boolean argument.
 		"""
-		require switch.startsWith("-")
-		.appendSwitchIfNotNull(switch, arg)
-	
-	def appendSwitch(switch as String, arg as bool)
-		"""
-		Boolean parameter overload
-		"""
-		require switch.startsWith("-")
 		val = if(arg, "yes", "no")
-		.appendSwitchIfNotNull(switch, val)
+		.appendNilableArg(switch, val)
 	
-	def appendFileNamesIfNotNull(switch as String, fileNames as String[]?)
+	def appendArgs(switch as String, args as String[]?)
 		"""
-		Overload to support appending multiple files/paths with the same swtich
+		If args is not nil, each argument in the array will be appended with the provided switch.
 		"""
-		if fileNames == nil, return
-		for name in fileNames
-			.appendSwitchIfNotNull(switch, name)
-	
-	def appendFileNamesIfNotNull(switch as String, fileItems as ITaskItem[]?)
-		"""
-		Overload to support appending multiple files/paths with the same swtich
-		"""
-		if fileItems == nil, return
-		for item in fileItems
-			.appendSwitchIfNotNull(switch, item)
-	
-	def appendBackEndSwitch(switch as String, unquoted as String?)
-		"""
-		Manual escapes for " characters since all back end arguments are already enclosed in quotes.
-		"""
-		arg = unquoted
-		if unquoted == nil, return
-		if unquoted.contains(" ")
-			arg = '\\"[unquoted]\\"'
-		if not .toString.endsWith(" ")
-			.appendTextUnquoted(" ")
-		.appendTextUnquoted(switch)
-		.appendTextUnquoted(arg)
-		.appendTextUnquoted(" ")
+		if args == nil, return
+		for a in args
+			.appendNilableArg(switch, a)
 
 class CobraCompiler inherits ToolTask
 	"""
@@ -101,31 +80,30 @@ class CobraCompiler inherits ToolTask
 		http://msdn.microsoft.com/en-us/library/microsoft.build.utilities.tooltask.generatecommandlinecommands(v=vs.100).aspx
 		"""
 		
-		args = CommandLineBuilder(false)
-		args.appendSwitch("-compile")
-		args.appendSwitchIfNotNull("-back-end:", .backEnd)
-		args.appendSwitchIfNotNull("-clr-platform:", .platform)
-		args.appendSwitchIfNotNull("-clr-profile:", .clrProfile)
-		args.appendSwitch("-copy-core:", .copyCore)
-		args.appendSwitchIfNotNull("-correct-source:", .correctSource)
-		args.appendSwitchIfNotNull("-debug:", .debug)
-		args.appendSwitch("-delay-sign:", .delaySign)
-		args.appendSwitch("-embed-run-time:", .embedRunTime)
-		args.appendSwitchIfNotNull("-embed-version:", .embedVersion)
-		args.appendSwitch("-include-traces:", .includeTraces)
-		args.appendSwitch("-keep-intermediate-files:", .keepIntermediateFiles)
-		args.appendSwitchIfNotNull("-key-container:", .keyContainer)
-		args.appendSwitchIfNotNull("-key-file:", .keyFile)
-		args.appendFileNamesIfNotNull("-library-directory:", .libraryDirectories)
-		args.appendSwitchIfNotNull("-main:", .main)
+		args = StringBuilder("-compile ")
+		args.appendNilableArg("-back-end:", .backEnd)
+		args.appendNilableArg("-clr-platform:", .platform)
+		args.appendNilableArg("-clr-profile:", .clrProfile)
+		args.appendBooleanArg("-copy-core:", .copyCore)
+		args.appendNilableArg("-correct-source:", .correctSource)
+		args.appendNilableArg("-debug:", .debug)
+		args.appendBooleanArg("-delay-sign:", .delaySign)
+		args.appendBooleanArg("-embed-run-time:", .embedRunTime)
+		args.appendNilableArg("-embed-version:", .embedVersion)
+		args.appendBooleanArg("-include-traces:", .includeTraces)
+		args.appendBooleanArg("-keep-intermediate-files:", .keepIntermediateFiles)
+		args.appendNilableArg("-key-container:", .keyContainer)
+		args.appendNilableArg("-key-file:", .keyFile)
+		args.appendArgs("-library-directory:", .libraryDirectories)
+		args.appendNilableArg("-main:", .main)
 		
 		# TODO: This breaks code completion in the MonoDevelop addin
-		#args.appendSwitchIfNotNull("-namespace:", .rootNamespace)
+		#args.appendNilableArg("-namespace:", .rootNamespace)
 		
-		args.appendSwitchIfNotNull("-native-compiler:", .nativeCompiler)
-		args.appendSwitchIfNotNull("-number:", .number)
-		args.appendSwitchIfNotNull("-out:", .outputAssembly)
-		args.appendSwitchIfNotNull("-target:", .target.toLower)
+		args.appendNilableArg("-native-compiler:", .nativeCompiler)
+		args.appendNilableArg("-number:", .number)
+		args.appendNilableArg("-out:", .outputAssembly.getMetadata("FullPath"))
+		args.appendNilableArg("-target:", .target.toLower)
 		
 		# handle -turbo, -include-tests, -contracts, -optimize, etc.
 		_generatePerformanceQualityArguments(args)
@@ -151,86 +129,89 @@ class CobraCompiler inherits ToolTask
 				if refName in implicitLibs
 					refs.remove(r)
 		.references = refs.toArray
-		args.appendFileNamesIfNotNull("-reference:", .references)
+		for r in .references
+			args.appendNilableArg("-reference:", r.getMetadata("FullPath"))
 		
-		# any misc. user-defined arguments such as "-verbosity:1" are appended unquoted
-		# the same is true for any misc. user-defined arguments to the backend compiler but those are appended later
 		if .cobraArgs
-			args.appendTextUnquoted(" [.cobraArgs] ")
+			args.append(" [.cobraArgs] ")
 		
 		# some compiler options can go straight to the back end
-		backEndArgs = CommandLineBuilder()
+		backEndArgs = StringBuilder()
 		
 		# this gets a little confusing since paths containing spaces must be enclosed in quotes and those
 		# quotes need to be escaped since the entirety of this string will also be contained in quotes.
-		backEndArgs.appendBackEndSwitch("/appConfig:", .applicationConfiguration)
-		backEndArgs.appendSwitchIfNotNull("/baseaddress:", .baseAddress)
-		backEndArgs.appendSwitchIfNotNull("/checked", .checkForOverflowUnderflow) # /checked+ or /checked-
-		backEndArgs.appendBackEndSwitch("/doc:", .documentationFile)
+		backEndArgs.appendNilableArg("/appConfig:", .applicationConfiguration)
+		backEndArgs.appendNilableArg("/baseaddress:", .baseAddress)
+		backEndArgs.appendNilableArg("/checked", .checkForOverflowUnderflow) # /checked+ or /checked-
+		backEndArgs.appendNilableArg("/doc:", .documentationFile)
 		
 		if .embeddedResources <> nil
 			for er in .embeddedResources
 				path = er.getMetadata("FullPath")
 				name = er.getMetadata("LogicalName")
 				arg = '\\"[path]\\",[name]'
-				backEndArgs.appendSwitchUnquotedIfNotNull("/resource:", arg)
+				backEndArgs.appendNilableArg("/resource:", arg)
 		
-		backEndArgs.appendSwitchIfNotNull("/errorreport:", .errorReport)
-		backEndArgs.appendSwitchIfNotNull("/filealign:", .fileAlignment)
-		if .generateFullPaths, backEndArgs.appendSwitch("/fullpaths")
+		backEndArgs.appendNilableArg("/errorreport:", .errorReport)
+		backEndArgs.appendNilableArg("/filealign:", .fileAlignment)
+		if .generateFullPaths, backEndArgs.append("/fullpaths ")
 		
 		if .linkedResources <> nil
 			for lr in .linkedResources
 				path = er.getMetadata("FullPath")
 				name = er.getMetadata("LogicalName")
 				arg = '\\"[path]\\",[name]'
-				backEndArgs.appendSwitchUnquotedIfNotNull("/linkresource:", arg)
+				backEndArgs.appendNilableArg("/linkresource:", arg)
 		
 		if .modules <> nil
-			backEndArgs.appendTextUnquoted("/addmodule:")
-			modBuilder = CommandLineBuilder()
+			backEndArgs.append("/addmodule: ")
+			modBuilder = StringBuilder()
 			for m in .modules
-				if modBuilder.length <> 0, modBuilder.appendTextUnquoted(";")
-				modBuilder.appendBackEndSwitch("", m)
-			backEndArgs.appendTextUnquoted(modBuilder.toString)
-			backEndArgs.appendTextUnquoted(" ")
+				if modBuilder.length <> 0, modBuilder.append(";")
+				modBuilder.append(m)
+			backEndArgs.append(modBuilder.toString)
+			backEndArgs.append(" ")
 		
-		backEndArgs.appendBackEndSwitch("/moduleassemblyname:", .moduleAssemblyName)
-		backEndArgs.appendBackEndSwitch("/win32icon:", .win32Icon)
+		backEndArgs.appendNilableArg("/moduleassemblyname:", .moduleAssemblyName)
+		backEndArgs.appendNilableArg("/win32icon:", .win32Icon)
 		
 		# TODO: some of these manifest options are mutually exclusive.  Do we care in this task?
-		if .noWin32Manifest, backEndArgs.appendSwitch("/nowin32manifest")
-		backEndArgs.appendBackEndSwitch("/win32manifest:", .win32Manifest)
-		backEndArgs.appendBackEndSwitch("/win32res:", .win32Resource)
+		if .noWin32Manifest, backEndArgs.append("/nowin32manifest")
+		backEndArgs.appendNilableArg("/win32manifest:", .win32Manifest)
+		backEndArgs.appendNilableArg("/win32res:", .win32Resource)
 		
 		if .nativeCompilerArgs
 			if backEndArgs.length <> 0
-				backEndArgs.appendTextUnquoted(" [.nativeCompilerArgs]")
+				backEndArgs.append(" [.nativeCompilerArgs]")
 			else
-				backEndArgs.appendTextUnquoted("[.nativeCompilerArgs]")
+				backEndArgs.append("[.nativeCompilerArgs]")
 		
 		if backEndArgs.length <> 0
-			args.appendTextUnquoted(' -native-compiler-args:"[backEndArgs.toString.trim]"')
+			args.append(' -native-compiler-args:"[backEndArgs.toString.trim]"')
 		
-		args.appendFileNamesIfNotNull(.sources, " ")
+		for s in .sources
+			sourcePath = s.getMetadata("FullPath")
+			if sourcePath.contains(" ")
+				sourcePath = '"[sourcePath]"'
+			args.append(" [sourcePath]")
 		
 		return args.toString
 	#endregion
 	
-	def _generatePerformanceQualityArguments(args as CommandLineBuilder)
+	def _generatePerformanceQualityArguments(args as StringBuilder)
 		"""
 		Handles all the Cobra options for contracts, asserts, tests, etc.
 		"""
 		if .performanceQualityOption <> nil
 			perfQual = .performanceQualityOption.toLower
 			if perfQual == "turbo"
-				args.appendSwitch("-turbo")
+				args.append(" -turbo")
 			else if perfQual <> "default"
-				args.appendSwitchIfNotNull("-contracts:", .contracts)
-				args.appendSwitch("-include-asserts:", .includeAsserts)
-				args.appendSwitch("-include-nil-checks:", .includeNilChecks)
-				args.appendSwitch("-include-tests:", .includeTests)
-				args.appendSwitch("-optimize:", .optimize)
+				args.appendNilableArg("-contracts:", .contracts)
+				args.appendBooleanArg("-include-asserts:", .includeAsserts)
+				args.appendBooleanArg("-include-nil-checks:", .includeNilChecks)
+				args.appendBooleanArg("-include-tests:", .includeTests)
+				args.appendBooleanArg("-optimize:", .optimize)
 	
 	
 	#region Psuedo-parameters
