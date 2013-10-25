@@ -8,3 +8,4 @@
 *.mdb
 *.cache
 *.exe
+targets/Cobra.MSBuild.dll
