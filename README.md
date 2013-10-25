@@ -13,15 +13,6 @@ To compile from the command line enter:
 Alternatively, build ```Cobra.MSBuild.cobraproj``` using the
 MonoDevelop.CobraBinding addin.
 
-On Mono, you must first apply the CommandLineBuilder patch to
-
-    path/to/mono/mcs/class/Microsoft.Build.Utilities/Microsoft.Build.Utilities/CommandLineBuilder.cs
-
-in order to compile the build task.
-
-A precompiled assembly is also provided for convenience.  Remember to backup
-your existing copy in case you need to revert!
-
 Testing
 ----------
 To test, run ```msbuild``` or ```xbuild``` on the solution or one of the
@@ -34,7 +25,6 @@ line at the end of the ```.cobraproj``` file:
 
 TODO
 ---------
-  - Finish patch and submit to Mono project
   - Alter Cobra.targets to support embedded resources on Mono
   - Override CobraCompiler.LogEventsFromTextOutput method to capture warnings and errors on Mono (regex in base class doesn't capture Cobra messages)
   - Support RootNamespace compiler option (coordinate with MD addin to not break code completion and tooltips)
