@@ -29,6 +29,23 @@ extend StringBuilder
 		if args == nil, return
 		for a in args
 			.appendNilableArg(switch, a)
+	
+	def appendResources(switch as String, args as ITaskItem[]?)
+		"""
+		If args is not nil, each resource in the array will be appended with the provided switch.
+		"""
+		if args == nil, return
+		for resource in args
+			path = resource.getMetadata("FullPath")
+			name = resource.getMetadata("LogicalName")
+			name ?= resource.getMetadata("FileName")
+			
+			if name <> nil and name.length <> 0
+				arg = '\\"[path]\\",[name]'
+			else
+				arg = '\\"[path]\\"'
+			.appendNilableArg(switch, arg)
+
 
 class CobraCompiler inherits ToolTask
 	"""
@@ -144,27 +161,15 @@ class CobraCompiler inherits ToolTask
 		backEndArgs.appendNilableArg("/baseaddress:", .baseAddress)
 		backEndArgs.appendNilableArg("/checked", .checkForOverflowUnderflow) # /checked+ or /checked-
 		backEndArgs.appendNilableArg("/doc:", .documentationFile)
-		
-		if .embeddedResources <> nil
-			for er in .embeddedResources
-				path = er.getMetadata("FullPath")
-				name = er.getMetadata("LogicalName")
-				arg = '\\"[path]\\",[name]'
-				backEndArgs.appendNilableArg("/resource:", arg)
-		
-		backEndArgs.appendNilableArg("/errorreport:", .errorReport)
+		backEndArgs.appendResources("/resource:", .embeddedResources)
 		backEndArgs.appendNilableArg("/filealign:", .fileAlignment)
-		if .generateFullPaths, backEndArgs.append("/fullpaths ")
-		
-		if .linkedResources <> nil
-			for lr in .linkedResources
-				path = er.getMetadata("FullPath")
-				name = er.getMetadata("LogicalName")
-				arg = '\\"[path]\\",[name]'
-				backEndArgs.appendNilableArg("/linkresource:", arg)
+		backEndArgs.appendResources("/linkresource:", .linkedResources)
+		# TODO: Figure out why these aren't getting parsed correctly
+		#backEndArgs.appendNilableArg("/errorreport:", .errorReport)
+		#if .generateFullPaths, backEndArgs.append(" /fullpaths")
 		
 		if .modules <> nil
-			backEndArgs.append("/addmodule: ")
+			backEndArgs.append(" /addmodule:")
 			modBuilder = StringBuilder()
 			for m in .modules
 				if modBuilder.length <> 0, modBuilder.append(";")
@@ -275,7 +280,7 @@ class CobraCompiler inherits ToolTask
 		"""
 		/errorreport
 		
-		Specifies how to handle internal compiler errors: prompt, send, or none. The default is none.
+		Specifies how to handle internal C# compiler errors: prompt, send, or none. The default is none.
 		
 		http://msdn.microsoft.com/en-us/library/404y0x34.aspx
 		"""
@@ -457,7 +462,7 @@ class CobraCompiler inherits ToolTask
 		
 		Embed the Cobra run-time support code in the assembly so that no reference to an external Cobra.Core.dll is
 		required. Approximately 85KB - 130KB overhead depending on other options such as -include-asserts or -turbo.
-        """
+		"""
 	
 	pro embedVersion from var as String?
 		"""

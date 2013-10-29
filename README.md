@@ -25,7 +25,6 @@ line at the end of the ```.cobraproj``` file:
 
 TODO
 ---------
-  - Alter Cobra.targets to support embedded resources on Mono
   - Override CobraCompiler.LogEventsFromTextOutput method to capture warnings and errors on Mono (regex in base class doesn't capture Cobra messages)
   - Support RootNamespace compiler option (coordinate with MD addin to not break code completion and tooltips)
   - Update MD addin project templates to import Cobra.targets

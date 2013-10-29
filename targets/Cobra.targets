@@ -15,8 +15,10 @@
 	The CreateManifestResourceNames target creates the manifest resource names from .RESX files.
 	
 		[IN]
-		@(EmbeddedResource) - The list of EmbeddedResource items that have been pre-processed to add metadata about resource type
-							Expected Metadata "Type" can either be "Resx" or "Non-Resx"
+		@(EmbeddedResource) - The list of EmbeddedResource items that have been
+		pre-processed to add metadata about resource type.
+		
+		Expected Metadata "Type" can either be "Resx" or "Non-Resx"
 		
 		[OUT]
 		@(EmbeddedResource) - EmbeddedResource items with metadata
@@ -36,7 +38,7 @@
 	</PropertyGroup>
 	<Target
 		Name="CreateManifestResourceNames"
-		Condition="'@(EmbeddedResource)' != ''"
+		Condition="'@(EmbeddedResource)' != '' and '$(OS)' == 'Windows_NT'"
 		DependsOnTargets="$(CreateManifestResourceNamesDependsOn)"
 		>
 
@@ -73,6 +75,53 @@
 			
 	</Target>
 	
+	<!--
+	According to Microsoft.Common.targets from .NET, ManifestResourceWithNoCulture is
+	only emitted for compatibility reasons.  However, Mono Microsoft.Common.targets still
+	expects these to have valid values.
+	-->
+	<Target Name="CreateManifestResourceNames"
+		Condition="'$(OS)' != 'Windows_NT'">
+
+		<CreateCSharpManifestResourceName
+			Condition="'@(ResxWithNoCulture)' != ''"
+			ResourceFiles="@(ResxWithNoCulture)"
+			RootNamespace="$(RootNamespace)">
+			<Output TaskParameter = "ManifestResourceNames" ItemName = "ManifestResourceWithNoCultureName" />
+		</CreateCSharpManifestResourceName>
+
+		<CreateCSharpManifestResourceName Condition="'@(NonResxWithNoCulture)' != ''"
+			ResourceFiles="@(NonResxWithNoCulture)"
+			RootNamespace="$(RootNamespace)">
+			<Output TaskParameter = "ManifestResourceNames" ItemName = "ManifestNonResxWithNoCulture" />
+		</CreateCSharpManifestResourceName>
+
+		<CreateCSharpManifestResourceName Condition="'@(ResxWithCulture)' != ''"
+			ResourceFiles="@(ResxWithCulture)"
+			RootNamespace="$(RootNamespace)">
+			<Output TaskParameter = "ManifestResourceNames" ItemName = "ManifestResourceWithCultureName" />
+		</CreateCSharpManifestResourceName>
+
+		<CreateCSharpManifestResourceName Condition="'@(NonResxWithCulture)' != ''"
+			ResourceFiles="@(NonResxWithCulture)"
+			RootNamespace="$(RootNamespace)">
+			<Output TaskParameter = "ManifestResourceNames" ItemName = "ManifestNonResxWithCulture" />
+		</CreateCSharpManifestResourceName>
+
+		<!-- Not sure if this is right... -->
+		<ItemGroup>
+			<_CoreCompileResourceInputs Include="@(ManifestNonResxWithCulture->'$(IntermediateOutputPath)%(Identity)')">
+				<Type>Non-Resx</Type>
+				<WithCulture>true</WithCulture>
+			</_CoreCompileResourceInputs>
+			<_CoreCompileResourceInputs Include="@(ManifestNonResxWithNoCulture->'$(IntermediateOutputPath)%(Identity)')">
+				<Type>Non-Resx</Type>
+				<WithCulture>false</WithCulture>
+			</_CoreCompileResourceInputs>
+		</ItemGroup>
+
+	</Target>
+
 	<Target
 		Name="CoreCompile"
 		Inputs="$(MSBuildAllProjects);
