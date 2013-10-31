@@ -1,3 +1,4 @@
+use System.Text.RegularExpressions
 
 use Microsoft.Build.Framework
 use Microsoft.Build.Utilities from "Microsoft.Build.Utilities.v4.0" # so we can resolve the assembly on Linux
@@ -200,6 +201,42 @@ class CobraCompiler inherits ToolTask
 			args.append(" [sourcePath]")
 		
 		return args.toString
+	
+    shared
+        var _compilerOutputRegex = Regex( _
+                r"(?<fileName>[^\(]+)\((?<lineNum>\d+)(,(?<columnNum>\d+))?\):(\s)+(?<msgType>error|warning):(\s)*(?<msg>[^\r]+)", _
+                RegexOptions.Compiled)
+
+	def logEventsFromTextOutput(singleLine as String?, msgImportance as MessageImportance) is protected, override
+		"""
+		Parse error and warning messages from the Cobra compiler and log them with the correct
+		line and column number (if applicable).
+		"""
+		if singleLine == nil
+			return
+		
+		match = _compilerOutputRegex.match(singleLine)
+		if match.success
+			groups = match.groups
+			fileName = groups["fileName"].toString
+			lineNum = int.parse(groups["lineNum"].toString)
+			columnNum = 0
+			if not int.tryParse(groups["columnNum"].toString, out columnNum)
+				columnNum = 0
+			msgType = groups["msgType"].toString
+			msg = groups["msg"].toString
+
+			if msgType == "error"
+				.log.logError(nil, nil, nil, fileName, lineNum, columnNum, lineNum, columnNum, msg, nil)
+			else
+				.log.logWarning(nil, nil, nil, fileName, lineNum, columnNum, lineNum, columnNum, msg, nil)
+
+		else if singleLine.contains("error:")
+			.log.logError(msg, nil)
+
+		else if singleLine.contains("warning:")
+			.log.logWarning(msg, nil)
+
 	#endregion
 	
 	def _generatePerformanceQualityArguments(args as StringBuilder)
