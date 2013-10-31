@@ -44,7 +44,20 @@ extend StringBuilder
 				arg = '\\"[path]\\",[name]'
 			else
 				arg = '\\"[path]\\"'
-			.appendNilableArg(switch, arg)
+			.appendNativeCompilerArg(switch, arg)
+
+	def appendNativeCompilerArg(switch as String, arg as String?)
+		"""
+		Appends the given switch as an argument to the native back-end C# compiler.
+		"""
+		if arg == nil, return
+		if .length <> 0, .append(" ")
+
+		if arg.contains(" ") and not arg.startsWith('\\"')
+		    # surround argument with "quotes"
+			arg = '\\"[arg]\\"'
+		
+		.append('-native-compiler-arg:"[switch][arg]"')
 
 
 class CobraCompiler inherits ToolTask
@@ -153,46 +166,32 @@ class CobraCompiler inherits ToolTask
 			args.append(" [.cobraArgs] ")
 		
 		# some compiler options can go straight to the back end
-		backEndArgs = StringBuilder()
-		
-		# this gets a little confusing since paths containing spaces must be enclosed in quotes and those
-		# quotes need to be escaped since the entirety of this string will also be contained in quotes.
-		backEndArgs.appendNilableArg("/appConfig:", .applicationConfiguration)
-		backEndArgs.appendNilableArg("/baseaddress:", .baseAddress)
-		backEndArgs.appendNilableArg("/checked", .checkForOverflowUnderflow) # /checked+ or /checked-
-		backEndArgs.appendNilableArg("/doc:", .documentationFile)
-		backEndArgs.appendResources("/resource:", .embeddedResources)
-		backEndArgs.appendNilableArg("/filealign:", .fileAlignment)
-		backEndArgs.appendResources("/linkresource:", .linkedResources)
-		# TODO: Figure out why these aren't getting parsed correctly
-		#backEndArgs.appendNilableArg("/errorreport:", .errorReport)
-		#if .generateFullPaths, backEndArgs.append(" /fullpaths")
+		args.appendNativeCompilerArg("/appConfig:", .applicationConfiguration)
+		args.appendNativeCompilerArg("/baseaddress:", .baseAddress)
+		args.appendNativeCompilerArg("/checked", .checkForOverflowUnderflow) # /checked+ or /checked-
+		args.appendNativeCompilerArg("/doc:", .documentationFile)
+		args.appendResources("/resource:", .embeddedResources)
+		args.appendNativeCompilerArg("/filealign:", .fileAlignment)
+		args.appendResources("/linkresource:", .linkedResources)
+		args.appendNativeCompilerArg("/errorreport:", .errorReport)
+		if .generateFullPaths, args.appendNativeCompilerArg("/fullpaths", "")
 		
 		if .modules <> nil
-			backEndArgs.append(" /addmodule:")
 			modBuilder = StringBuilder()
 			for m in .modules
 				if modBuilder.length <> 0, modBuilder.append(";")
 				modBuilder.append(m)
-			backEndArgs.append(modBuilder.toString)
-			backEndArgs.append(" ")
+			args.appendNativeCompilerArg("/addmodule:", modBuilder.toString)
 		
-		backEndArgs.appendNilableArg("/moduleassemblyname:", .moduleAssemblyName)
-		backEndArgs.appendNilableArg("/win32icon:", .win32Icon)
+		args.appendNativeCompilerArg("/moduleassemblyname:", .moduleAssemblyName)
+		args.appendNativeCompilerArg("/win32icon:", .win32Icon)
 		
 		# TODO: some of these manifest options are mutually exclusive.  Do we care in this task?
-		if .noWin32Manifest, backEndArgs.append("/nowin32manifest")
-		backEndArgs.appendNilableArg("/win32manifest:", .win32Manifest)
-		backEndArgs.appendNilableArg("/win32res:", .win32Resource)
+		if .noWin32Manifest, args.appendNativeCompilerArg("/nowin32manifest", "")
+		args.appendNativeCompilerArg("/win32manifest:", .win32Manifest)
+		args.appendNativeCompilerArg("/win32res:", .win32Resource)
 		
-		if .nativeCompilerArgs
-			if backEndArgs.length <> 0
-				backEndArgs.append(" [.nativeCompilerArgs]")
-			else
-				backEndArgs.append("[.nativeCompilerArgs]")
-		
-		if backEndArgs.length <> 0
-			args.append(' -native-compiler-args:"[backEndArgs.toString.trim]"')
+		args.appendNativeCompilerArg("", .nativeCompilerArgs)
 		
 		for s in .sources
 			sourcePath = s.getMetadata("FullPath")
