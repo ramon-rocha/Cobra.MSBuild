@@ -227,9 +227,9 @@ class CobraCompiler inherits ToolTask
 			msg = groups["msg"].toString
 
 			if msgType == "error"
-				.log.logError(nil, nil, nil, fileName, lineNum, columnNum, lineNum, columnNum, msg, nil)
+				.log.logError(nil, nil, nil, fileName, lineNum, columnNum, 0, 0, msg, nil)
 			else
-				.log.logWarning(nil, nil, nil, fileName, lineNum, columnNum, lineNum, columnNum, msg, nil)
+				.log.logWarning(nil, nil, nil, fileName, lineNum, columnNum, 0, 0, msg, nil)
 
 		else if singleLine.contains("error:")
 			.log.logError(msg, nil)
