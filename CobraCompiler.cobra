@@ -145,7 +145,7 @@ class CobraCompiler inherits ToolTask
 		# error: CS1703: An assembly with the same identity "<AssemblyIdentity>" has already been imported. Try
 		# removing one of the duplicate references.
 		#
-		# I am not sure why this happens of if this is the "right" fix.
+		# I am not sure why this happens or if this is the "right" fix.
 		
 		if CobraCore.isRunningOnMono
 			implicitLibs = {"mscorlib", "Cobra.Core", "System", "System.Core", "System.Xml", "Microsoft.CSharp"}
