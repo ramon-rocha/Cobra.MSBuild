@@ -1,7 +1,7 @@
 use System.Text.RegularExpressions
 
 use Microsoft.Build.Framework
-use Microsoft.Build.Utilities from "Microsoft.Build.Utilities.v4.0" # so we can resolve the assembly on Linux
+use Microsoft.Build.Utilities from "Microsoft.Build.Utilities.v4.0"
 
 namespace Cobra.MSBuild
 

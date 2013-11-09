@@ -31,5 +31,5 @@
     </EmbeddedResource>
     <EmbeddedResource Include="EmptyXmlFile.xml" />
   </ItemGroup>
-  <Import Project="..\..\targets\Cobra.targets" />
+  <Import Project="$(MSBuildExtensionsPath)\Cobra\Cobra.targets" />
 </Project>

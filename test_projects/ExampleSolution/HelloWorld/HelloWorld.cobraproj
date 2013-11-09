@@ -2,28 +2,28 @@
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
     <ProductVersion>10.0.0</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{436C02D8-1CC5-43E4-9691-7B1F52806ECA}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <RootNamespace>LibraryProject</RootNamespace>
+    <ProjectGuid>{A4DBA58B-D763-41F2-A1AA-48C118E85C47}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>HelloWorld</RootNamespace>
     <UsePartialTypes>false</UsePartialTypes>
-    <AssemblyName>LibraryProject</AssemblyName>
+    <AssemblyName>HelloWorld</AssemblyName>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <DebugSymbols>true</DebugSymbols>
     <OutputPath>bin\Debug</OutputPath>
     <ErrorReport>prompt</ErrorReport>
-    <ConsolePause>false</ConsolePause>
+    <Externalconsole>true</Externalconsole>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
     <OutputPath>bin\Release</OutputPath>
     <ErrorReport>prompt</ErrorReport>
-    <ConsolePause>false</ConsolePause>
+    <Externalconsole>true</Externalconsole>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="FooClass.cobra" />
+    <Compile Include="Program.cobra" />
   </ItemGroup>
-  <Import Project="..\..\..\targets\Cobra.targets" />
+  <Import Project="$(MSBuildExtensionsPath)\Cobra\Cobra.targets" />
 </Project>
