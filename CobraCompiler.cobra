@@ -127,9 +127,7 @@ class CobraCompiler inherits ToolTask
 		args.appendNilableArg("-key-file:", .keyFile)
 		args.appendArgs("-library-directory:", .libraryDirectories)
 		args.appendNilableArg("-main:", .main)
-		
-		# TODO: This breaks code completion in the MonoDevelop addin
-		#args.appendNilableArg("-namespace:", .rootNamespace)
+		args.appendNilableArg("-namespace:", .rootNamespace)
 		
 		args.appendNilableArg("-native-compiler:", .nativeCompiler)
 		args.appendNilableArg("-number:", .number)
