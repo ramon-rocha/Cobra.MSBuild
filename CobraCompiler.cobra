@@ -229,11 +229,11 @@ class CobraCompiler inherits ToolTask
 			else
 				.log.logWarning(nil, nil, nil, fileName, lineNum, columnNum, 0, 0, msg, nil)
 
-		else if singleLine.startsWith("error:")
-			.log.logError(singleLine.replace("error:", "").trim, nil)
+		else if singleLine.contains("error:")
+			.log.logError(singleLine, nil)
 
-		else if singleLine.startsWith("warning:")
-			.log.logWarning(singleLine.replace("warning:", "").trim, nil)
+		else if singleLine.contains("warning:")
+			.log.logWarning(singleLine, nil)
 
 	#endregion
 	
