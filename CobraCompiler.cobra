@@ -202,7 +202,7 @@ class CobraCompiler inherits ToolTask
 	
     shared
         var _compilerOutputRegex = Regex( _
-                r"(?<fileName>[^\(]+)\((?<lineNum>\d+)(,(?<columnNum>\d+))?\):(\s)+(?<msgType>error|warning):(\s)*(?<msg>[^\r]+)", _
+                r"(?<fileName>[^\(]+)\((?<lineNum>\d+)(,(?<columnNum>\d+))?\):(\s)+(?<msgType>error|warning)(\s)*:(\s)*(?<msg>[^\r]+)", _
                 RegexOptions.Compiled)
 
 	def logEventsFromTextOutput(singleLine as String?, msgImportance as MessageImportance) is protected, override
@@ -217,22 +217,23 @@ class CobraCompiler inherits ToolTask
 		if match.success
 			groups = match.groups
 			fileName = groups["fileName"].toString
-			lineNum = int.parse(groups["lineNum"].toString)
-			columnNum = 0
-			if not int.tryParse(groups["columnNum"].toString, out columnNum)
+			if "Skipping duplicate message:" not in fileName
+				lineNum = int.parse(groups["lineNum"].toString)
 				columnNum = 0
-			msgType = groups["msgType"].toString
-			msg = groups["msg"].toString
+				if not int.tryParse(groups["columnNum"].toString, out columnNum)
+					columnNum = 0
+				msgType = groups["msgType"].toString
+				msg = groups["msg"].toString
+				
+				if msgType == "error"
+					.log.logError(nil, nil, nil, fileName, lineNum, columnNum, 0, 0, msg, nil)
+				else
+					.log.logWarning(nil, nil, nil, fileName, lineNum, columnNum, 0, 0, msg, nil)
 
-			if msgType == "error"
-				.log.logError(nil, nil, nil, fileName, lineNum, columnNum, 0, 0, msg, nil)
-			else
-				.log.logWarning(nil, nil, nil, fileName, lineNum, columnNum, 0, 0, msg, nil)
-
-		else if singleLine.contains("error:")
+		else if "error:" in singleLine or "error :" in singleLine
 			.log.logError(singleLine, nil)
 
-		else if singleLine.contains("warning:")
+		else if "warning:" in singleLine or "warning: " in singleLine
 			.log.logWarning(singleLine, nil)
 
 	#endregion
