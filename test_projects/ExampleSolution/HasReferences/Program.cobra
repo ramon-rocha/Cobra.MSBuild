@@ -3,7 +3,7 @@ use System.Windows.Forms
 class Program
 
 	def main
-		foo = FooClass()
+		foo = LibraryProject.FooClass()
 		csharp = CSharpLibraryProject.CameFromCSharp()
 		print foo.typeOf.toString
 		print foo.typeOf.toString
