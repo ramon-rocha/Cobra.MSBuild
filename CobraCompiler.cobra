@@ -91,10 +91,18 @@ class CobraCompiler inherits ToolTask
 			_toolPath = .toolPath
 			if not _toolPath.endsWith(.toolName)
 				_toolPath = Path.combine(_toolPath, .toolName)
-		else if CobraCore.isRunningOnMono
-			_toolPath ?= CobraCommand.find.path
-		else
-			_toolPath ?= CobraCommand.findExe.path
+			if not File.exists(_toolPath)
+				_toolPath = nil
+
+		if _toolPath == nil
+			if CobraCore.isRunningOnUnix
+				_toolPath = '/usr/local/cobra/bin/cobra'
+				if not File.exists(_toolPath)
+					_toolPath = CobraCommand.find.path
+			else
+				_toolPath = r'C:\Cobra\cobra.exe'
+				if not File.exists(_toolPath)
+					_toolPath = CobraCommand.findExe.path
 		
 		systemPath = Environment.getEnvironmentVariable("PATH")
 		toolDir = Path.getDirectoryName(_toolPath)
@@ -111,7 +119,7 @@ class CobraCompiler inherits ToolTask
 		http://msdn.microsoft.com/en-us/library/microsoft.build.utilities.tooltask.generatecommandlinecommands(v=vs.100).aspx
 		"""
 		
-		args = StringBuilder("-compile ")
+		args = StringBuilder("-compile")
 		args.appendNilableArg("-back-end:", .backEnd)
 		args.appendNilableArg("-clr-platform:", .platform)
 		args.appendNilableArg("-clr-profile:", .clrProfile)
